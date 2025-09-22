@@ -1,5 +1,5 @@
 from db import create_db, get_db
-from employees import add_employee, delete_employee
+from employees import add_employee, delete_employee, get_average_salary_by_role
 
 
 def main():
@@ -28,7 +28,10 @@ def main():
             delete_employee(id)
             print(f"Employee with ID {id} deleted.")
         elif choice == 4:
-            print("Coming soon...")
+            avg_salaries = get_average_salary_by_role()
+            print("Average Salary by Role:")
+            for role, salary in avg_salaries.items():
+                print(f"{role}: ${salary:.0f}")
         elif choice == 5:
             print("Exiting...")
             running = False

@@ -18,3 +18,9 @@ def delete_employee(id: str):
     df = get_db()
     df = df[df["id"] != id]
     df.to_csv("employees.csv", index=False)
+
+
+def get_average_salary_by_role():
+    df = get_db()
+    roles = df.groupby("role")
+    return roles["salary"].mean()
