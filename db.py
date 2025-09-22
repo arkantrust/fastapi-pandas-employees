@@ -2,11 +2,12 @@ import pandas as pd
 
 
 def create_db():
+    # check if file exists, if not create it
     try:
-        with open("employees.csv", "x") as file:
-            file.write("id,name,role,salary\n")
-    except FileExistsError:
-        print("Error: The file 'employees.csv' already exists.")
+        pd.read_csv("employees.csv")
+    except FileNotFoundError:
+        df = pd.DataFrame(columns=["id", "name", "role", "salary"])
+        df.to_csv("employees.csv", index=False)
 
 
 def get_db() -> pd.DataFrame:
@@ -14,5 +15,4 @@ def get_db() -> pd.DataFrame:
         df = pd.read_csv("employees.csv")
         return df
     except FileNotFoundError:
-        print("Error: The file 'employees.csv' does not exist.")
         return pd.DataFrame(columns=["id", "name", "role", "salary"])
