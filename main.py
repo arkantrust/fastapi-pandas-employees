@@ -1,54 +1,67 @@
+from uuid import UUID
 from db import create_db, get_db
-from employees import add_employee, delete_employee, get_average_salary_by_role
+from employees import (
+    AddEmployeeRequest,
+    Employee,
+    add_employee,
+    delete_employee,
+    get_average_salary_by_role,
+    get_employee_by_id,
+)
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 
-def main():
-    running = True
-    while running:
-        print("Menu:")
-        print("1. View employees")
-        print("2. Add employee")
-        print("3. Delete employee by ID")
-        print("4. View average salary by role")
-        print("5. Exit")
+create_db()
 
-        choice = get_selection(1, 5)
-
-        if choice == 1:
-            employees = get_db()
-            print(employees)
-        elif choice == 2:
-            name = input("Enter employee name: ")
-            role = input("Enter employee role: ")
-            salary = float(input("Enter employee salary: "))
-            id = add_employee(name, role, salary)
-            print("Employee added with ID: ", id)
-        elif choice == 3:
-            id = input("Enter employee ID to delete: ")
-            delete_employee(id)
-            print(f"Employee with ID {id} deleted.")
-        elif choice == 4:
-            avg_salaries = get_average_salary_by_role()
-            print("Average Salary by Role:")
-            for role, salary in avg_salaries.items():
-                print(f"{role}: ${salary:.0f}")
-        elif choice == 5:
-            print("Exiting...")
-            running = False
+app = FastAPI()
 
 
-def get_selection(start: int, end: int) -> int:
-    while True:
-        try:
-            i = int(input(f"Select an option ({start}-{end}): "))
-            if start <= i <= end:
-                return i
-            else:
-                print(f"Please enter a number between {start} and {end}.")
-        except ValueError:
-            print("Invalid input. Please enter a number.")
+@app.get("/api/employees")
+def get_employees() -> list[Employee]:
+    employees = get_db().to_dict(orient="records")
+    return [Employee(**e) for e in employees]  # type: ignore
 
 
-if __name__ == "__main__":
-    create_db()
-    main()
+@app.post("/api/employees")
+def create_employee(employee: AddEmployeeRequest):
+    id = add_employee(employee.name, employee.role, employee.salary)
+    e = Employee(
+        id=str(id),
+        name=employee.name,
+        role=employee.role,
+        salary=employee.salary,
+    )
+    return e
+
+
+@app.get("/api/employees/{employee_id}")
+def get_employee(employee_id: str):
+    try:
+        employee_uuid = UUID(employee_id)
+    except ValueError:
+        return JSONResponse({"error": "Invalid employee ID"}, status_code=400)
+    e = get_employee_by_id(employee_uuid)
+    if not e:
+        return JSONResponse({"error": "Employee not found"}, status_code=404)
+    return e
+
+
+@app.delete("/api/employees/{employee_id}")
+def remove_employee(employee_id: str):
+    df = get_db()
+    if df[df["id"] == employee_id].empty:
+        return JSONResponse({"error": "Employee not found"}, status_code=404)
+    delete_employee(employee_id)
+    return JSONResponse({"message": f"Employee with ID {employee_id} deleted."})
+
+
+@app.get("/api/analytics/average-salary-by-role")
+def average_salary_by_role():
+    avg_salaries = get_average_salary_by_role()
+    return JSONResponse(
+        [
+            {"role": role, "average_salary": float(salary)}
+            for role, salary in avg_salaries.items()
+        ]
+    )

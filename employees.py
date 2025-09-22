@@ -1,6 +1,26 @@
 from uuid import uuid4, UUID
 import pandas as pd
 from db import get_db
+from pydantic import BaseModel
+
+
+class AddEmployeeRequest(BaseModel):
+    name: str
+    role: str
+    salary: float
+
+
+class Employee(AddEmployeeRequest):
+    id: str
+
+
+def get_employee_by_id(employee_id: UUID) -> Employee | None:
+    df = get_db()
+    employee = df[df["id"] == str(employee_id)]
+    if employee.empty:
+        print(employee)
+        return None
+    return Employee(**employee.iloc[0].to_dict())
 
 
 def add_employee(name: str, role: str, salary: float) -> UUID:
